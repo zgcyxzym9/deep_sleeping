@@ -1,0 +1,45 @@
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+
+# Build and packaging artifacts
+build/
+dist/
+*.egg-info/
+
+# Generated datasets, render probes, and audio artifacts
+generated*/
+dataset generator/generated*/
+*.wav
+*.mid
+*.flp
+
+# Training and experiment outputs
+runs/
+model/runs/
+checkpoints/
+*.ckpt
+*.pt
+*.pth
+*.onnx
+events.out.tfevents*
+
+# Large archives and local reports/results
+*.zip
+opening report/
+*.csv
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

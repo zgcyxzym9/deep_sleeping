@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "procmusic-dataset"
+version = "0.1.0"
+description = "Procedural multitrack music dataset generator for open-set source separation research."
+requires-python = ">=3.10"
+authors = [{ name = "Research Project" }]
+dependencies = ["dawdreamer", "numpy", "scipy"]
+
+[project.optional-dependencies]
+vst = ["dawdreamer", "numpy", "scipy"]
+
+[project.scripts]
+procmusic-generate = "procmusic_dataset.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

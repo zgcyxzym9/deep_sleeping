@@ -1,0 +1,58 @@
+{
+  "seed": 8105,
+  "dataset": {
+    "root": "/root/autodl-tmp/Final Project/generated_vst",
+    "sample_rate": 44100,
+    "segment_seconds": 24.0,
+    "random_crop": true,
+    "mono": false
+  },
+  "model": {
+    "sample_rate": 44100,
+    "n_fft": 1024,
+    "hop_length": 256,
+    "win_length": 1024,
+    "hidden_dim": 128,
+    "encoder_channels": 64,
+    "decoder_channels": 32,
+    "max_steps": 6,
+    "stop_threshold": 0.5,
+    "refine_channels": 32
+  },
+  "training": {
+    "output_dir": "runs/default",
+    "batch_size": 8,
+    "num_workers": 0,
+    "epochs": 20,
+    "max_steps": 20480000,
+    "learning_rate": 0.0003,
+    "weight_decay": 0.000001,
+    "grad_clip_norm": 1.0,
+    "grad_accum_steps": 1,
+    "amp": true,
+    "log_every": 10,
+    "checkpoint_every": 2000,
+    "resume": null
+  },
+  "loss": {
+    "waveform_l1": 1.0,
+    "spectral": 1.0,
+    "si_sdr": 0.5,
+    "stop": 0.2,
+    "residual_energy": 0.05,
+    "spectral_chunk_size": 8
+  },
+  "discriminator": {
+    "enabled": false,
+    "checkpoint": null,
+    "loss_weight": 0.1,
+    "channels": 32,
+    "hidden_dim": 128,
+    "negative_gain_min_db": -4.0,
+    "negative_gain_max_db": 4.0,
+    "max_relative_gain_db": 8.0,
+    "three_stem_probability": 0.15,
+    "target_rms": 0.05,
+    "label_chunk_size": 16
+  }
+}

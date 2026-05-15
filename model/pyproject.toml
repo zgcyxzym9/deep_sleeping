@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "procmusic-model"
+version = "0.1.0"
+description = "Research skeleton for open-set music source separation and auditory scene decomposition."
+requires-python = ">=3.10"
+authors = [{ name = "Research Project" }]
+dependencies = [
+  "torch",
+  "torchaudio",
+  "tensorboard",
+]
+
+[project.scripts]
+procmusic-train = "procmusic_model.training.train:main"
+procmusic-train-discriminator = "procmusic_model.training.train_discriminator:main"
+procmusic-eval = "procmusic_model.eval.evaluate:main"
+procmusic-eval-discriminator = "procmusic_model.eval.eval_discriminator:main"
+procmusic-inspect-dataset = "procmusic_model.tools.inspect_dataset:main"
+procmusic-overfit-one-batch = "procmusic_model.tools.overfit_one_batch:main"
+procmusic-run-separation = "procmusic_model.tools.run_separation:main"
+procmusic-render-debug-spectrogram = "procmusic_model.tools.render_debug_spectrogram:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
