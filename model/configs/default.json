@@ -40,12 +40,12 @@
     "si_sdr": 0.5,
     "stop": 0.2,
     "residual_energy": 0.05,
+    "source_impurity": 0.1,
     "spectral_chunk_size": 8
   },
   "discriminator": {
     "enabled": false,
     "checkpoint": null,
-    "loss_weight": 0.1,
     "channels": 32,
     "hidden_dim": 128,
     "negative_gain_min_db": -4.0,

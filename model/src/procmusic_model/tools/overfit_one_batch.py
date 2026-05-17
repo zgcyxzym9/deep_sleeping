@@ -32,7 +32,6 @@ def main() -> None:
         config.loss,
         config.model,
         discriminator,
-        config.discriminator.loss_weight,
         config.discriminator.target_rms,
     ).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=config.training.learning_rate)

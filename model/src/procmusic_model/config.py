@@ -54,6 +54,7 @@ class LossConfig:
     si_sdr: float = 0.5
     stop: float = 0.2
     residual_energy: float = 0.05
+    source_impurity: float = 0.1
     spectral_chunk_size: int = 8
 
 
@@ -61,7 +62,6 @@ class LossConfig:
 class DiscriminatorConfig:
     enabled: bool = False
     checkpoint: str | None = None
-    loss_weight: float = 0.1
     channels: int = 32
     hidden_dim: int = 128
     negative_gain_min_db: float = -4.0

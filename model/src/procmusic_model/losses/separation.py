@@ -32,14 +32,12 @@ class SeparationLoss(nn.Module):
         loss_config: LossConfig,
         model_config: ModelConfig,
         discriminator: nn.Module | None = None,
-        discriminator_loss_weight: float = 0.1,
         discriminator_target_rms: float = 0.05,
     ) -> None:
         super().__init__()
         self.loss_config = loss_config
         self.model_config = model_config
         self.discriminator = discriminator
-        self.discriminator_loss_weight = discriminator_loss_weight
         self.discriminator_target_rms = discriminator_target_rms
 
     def forward(self, output, batch) -> LossOutput:
@@ -67,7 +65,7 @@ class SeparationLoss(nn.Module):
             terms["source_impurity"] = source_impurity
         total = sum(getattr(self.loss_config, name) * terms[name] for name in ("waveform_l1", "spectral", "si_sdr", "stop", "residual_energy"))
         if self.discriminator is not None:
-            total = total + self.discriminator_loss_weight * source_impurity
+            total = total + self.loss_config.source_impurity * source_impurity
         terms["total"] = total
         return LossOutput(total=total, terms=terms, matched_targets=matched)
 
