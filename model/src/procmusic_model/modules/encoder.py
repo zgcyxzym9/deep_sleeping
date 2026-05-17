@@ -21,5 +21,7 @@ class AudioEncoder(nn.Module):
         self.pool = nn.AdaptiveAvgPool2d((1, 1))
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
-        encoded = self.net(features)
+        return self.net(features)
+
+    def summary(self, encoded: torch.Tensor) -> torch.Tensor:
         return self.pool(encoded).flatten(1)

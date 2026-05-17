@@ -3,6 +3,7 @@ from .decoder import MaskDecoder
 from .discovery import SourceDiscovery
 from .discriminator import SingleSourceDiscriminator, normalize_rms, weighted_stft_power
 from .refiner import RestorationRefiner
+from .stop import StopPredictor
 
 __all__ = [
     "AudioEncoder",
@@ -10,6 +11,7 @@ __all__ = [
     "SingleSourceDiscriminator",
     "SourceDiscovery",
     "RestorationRefiner",
+    "StopPredictor",
     "normalize_rms",
     "weighted_stft_power",
 ]

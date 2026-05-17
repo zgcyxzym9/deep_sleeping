@@ -52,9 +52,52 @@ class ModelAndTrainTest(unittest.TestCase):
             model = OpenSetSeparator(model_config, channels=batch.mixture.shape[1])
             criterion = SeparationLoss(ExperimentConfig().loss, model_config)
             output = model.forward_train(batch)
+            self.assertEqual(output.estimated_sources.shape[1], model_config.max_steps)
+            self.assertEqual(output.stop_logits.shape[1], model_config.max_steps + 1)
             loss = criterion(output, batch).total
             loss.backward()
             self.assertTrue(torch.isfinite(loss))
+
+    def test_separate_stops_before_first_prediction(self) -> None:
+        model_config = ModelConfig(sample_rate=SAMPLE_RATE, n_fft=128, hop_length=32, win_length=128, hidden_dim=16, encoder_channels=8, max_steps=2, refine_channels=8)
+        model = OpenSetSeparator(model_config)
+        model.stop_predictor.forward = lambda summary: summary.new_full((summary.shape[0],), 100.0)
+        model.decoder = _FailingModule()
+        model.refiner = _FailingModule()
+        mixture = torch.zeros(1, 1, 4096)
+
+        result = model.separate(mixture)
+
+        self.assertEqual(result["sources"].shape, (1, 0, 1, 4096))
+        self.assertEqual(result["stop_logits"].shape, (1, 1))
+        self.assertEqual(result["residuals"].shape, (1, 1, 1, 4096))
+        self.assertTrue(torch.equal(result["predicted_source_count"], torch.tensor([0])))
+
+    def test_separate_residuals_track_actual_predictions(self) -> None:
+        model_config = ModelConfig(sample_rate=SAMPLE_RATE, n_fft=128, hop_length=32, win_length=128, hidden_dim=16, encoder_channels=8, max_steps=3, refine_channels=8)
+        model = OpenSetSeparator(model_config)
+        calls = {"count": 0}
+
+        def stop_after_one(summary):
+            value = -100.0 if calls["count"] == 0 else 100.0
+            calls["count"] += 1
+            return summary.new_full((summary.shape[0],), value)
+
+        model.stop_predictor.forward = stop_after_one
+        mixture = torch.zeros(1, 1, 4096)
+
+        result = model.separate(mixture)
+
+        self.assertEqual(result["sources"].shape[1], 1)
+        self.assertEqual(result["stop_logits"].shape, (1, 2))
+        self.assertEqual(result["residuals"].shape[1], 2)
+        self.assertTrue(torch.equal(result["predicted_source_count"], torch.tensor([1])))
+
+    def test_separate_rejects_batched_inference(self) -> None:
+        model_config = ModelConfig(sample_rate=SAMPLE_RATE, n_fft=128, hop_length=32, win_length=128, hidden_dim=16, encoder_channels=8, max_steps=2, refine_channels=8)
+        model = OpenSetSeparator(model_config)
+        with self.assertRaises(ValueError):
+            model.separate(torch.zeros(2, 1, 4096))
 
     def test_train_loop_smoke_writes_checkpoint(self) -> None:
         with tempfile.TemporaryDirectory() as data_tmp, tempfile.TemporaryDirectory() as run_tmp:
@@ -113,6 +156,11 @@ def _write_wav(path: Path, audio: list[float]) -> None:
             value = max(-1.0, min(1.0, sample))
             pcm.extend(int(round(value * 32767.0)).to_bytes(2, "little", signed=True))
         handle.writeframes(bytes(pcm))
+
+
+class _FailingModule(torch.nn.Module):
+    def forward(self, *args, **kwargs):
+        raise AssertionError("module should not run after pre-step stop")
 
 
 if __name__ == "__main__":

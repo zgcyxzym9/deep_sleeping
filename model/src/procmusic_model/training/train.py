@@ -119,14 +119,18 @@ def _log(writer: SummaryWriter, terms: dict[str, torch.Tensor], output, batch, s
     for name, value in terms.items():
         writer.add_scalar(f"loss/{name}", float(value.detach().cpu()), step)
     stop_prob = torch.sigmoid(output.stop_logits)
-    has_stop = stop_prob > 0.5
-    first_stop = has_stop.float().argmax(dim=1)
-    max_steps = output.estimated_sources.shape[1]
-    pred_count = torch.where(has_stop.any(dim=1), first_stop, torch.full_like(first_stop, max_steps)).float().mean()
+    pred_count = _predicted_source_count(stop_prob, threshold=0.5, max_steps=output.estimated_sources.shape[1]).float().mean()
     writer.add_scalar("debug/predicted_source_count", float(pred_count.detach().cpu()), step)
     writer.add_scalar("debug/mixture_rms", float(batch.mixture.pow(2).mean().sqrt().detach().cpu()), step)
     if output.estimated_sources.numel() and batch.sources.numel():
         writer.add_scalar("metric/first_step_si_sdr", float(si_sdr(output.estimated_sources[:, 0], batch.sources[:, 0]).detach().cpu()), step)
+
+
+def _predicted_source_count(stop_prob: torch.Tensor, threshold: float = 0.5, max_steps: int | None = None) -> torch.Tensor:
+    has_stop = stop_prob > threshold
+    first_stop = has_stop.float().argmax(dim=1)
+    fallback = stop_prob.shape[1] - 1 if max_steps is None else max_steps
+    return torch.where(has_stop.any(dim=1), first_stop, torch.full_like(first_stop, fallback))
 
 
 def _load_discriminator(config, channels: int, device: str | torch.device) -> torch.nn.Module | None:
