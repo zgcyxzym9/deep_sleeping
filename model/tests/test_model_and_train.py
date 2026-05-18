@@ -70,10 +70,11 @@ class ModelAndTrainTest(unittest.TestCase):
 
         self.assertEqual(result["sources"].shape, (1, 0, 1, 4096))
         self.assertEqual(result["stop_logits"].shape, (1, 1))
-        self.assertEqual(result["residuals"].shape, (1, 1, 1, 4096))
+        self.assertEqual(result["residual"].shape, (1, 1, 4096))
+        self.assertTrue(torch.equal(result["residual"], mixture))
         self.assertTrue(torch.equal(result["predicted_source_count"], torch.tensor([0])))
 
-    def test_separate_residuals_track_actual_predictions(self) -> None:
+    def test_separate_residual_tracks_actual_predictions(self) -> None:
         model_config = ModelConfig(sample_rate=SAMPLE_RATE, n_fft=128, hop_length=32, win_length=128, hidden_dim=16, encoder_channels=8, max_steps=3, refine_channels=8)
         model = OpenSetSeparator(model_config)
         calls = {"count": 0}
@@ -84,13 +85,14 @@ class ModelAndTrainTest(unittest.TestCase):
             return summary.new_full((summary.shape[0],), value)
 
         model.stop_predictor.forward = stop_after_one
+        model.refiner = _ConstantSource(0.25)
         mixture = torch.zeros(1, 1, 4096)
 
         result = model.separate(mixture)
 
         self.assertEqual(result["sources"].shape[1], 1)
         self.assertEqual(result["stop_logits"].shape, (1, 2))
-        self.assertEqual(result["residuals"].shape[1], 2)
+        self.assertTrue(torch.allclose(result["residual"], torch.full_like(mixture, -0.25)))
         self.assertTrue(torch.equal(result["predicted_source_count"], torch.tensor([1])))
 
     def test_separate_rejects_batched_inference(self) -> None:
@@ -161,6 +163,15 @@ def _write_wav(path: Path, audio: list[float]) -> None:
 class _FailingModule(torch.nn.Module):
     def forward(self, *args, **kwargs):
         raise AssertionError("module should not run after pre-step stop")
+
+
+class _ConstantSource(torch.nn.Module):
+    def __init__(self, value: float) -> None:
+        super().__init__()
+        self.value = value
+
+    def forward(self, rough_source, residual, mixture):
+        return mixture.new_full(mixture.shape, self.value)
 
 
 if __name__ == "__main__":

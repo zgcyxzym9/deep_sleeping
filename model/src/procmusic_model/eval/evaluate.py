@@ -66,7 +66,7 @@ def evaluate(config, checkpoint_path: str, device: str | None = None):
                 "source_count": true_count,
                 "predicted_source_count": pred_count,
                 "source_count_error": abs(pred_count - true_count),
-                "residual_rms": float(result["residuals"][0, -1].pow(2).mean().sqrt().cpu()),
+                "residual_rms": float(result["residual"][0].pow(2).mean().sqrt().cpu()),
                 "stop_at_true_count_prob": float(stop_probs[min(true_count, len(stop_probs) - 1)]),
             }
         )

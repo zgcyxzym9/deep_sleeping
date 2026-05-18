@@ -32,9 +32,11 @@ def main() -> None:
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     count = int(result["predicted_source_count"][0].cpu())
-    for idx in range(max(1, count)):
+    source_count = min(count, result["sources"].shape[1])
+    for idx in range(source_count):
         _write_wav(out_dir / f"source_{idx:02d}.wav", result["sources"][0, idx].detach().cpu(), config.dataset.sample_rate)
-    _write_wav(out_dir / "residual.wav", result["residuals"][0, -1].detach().cpu(), config.dataset.sample_rate)
+    _write_wav(out_dir / "residual.wav", result["residual"][0].detach().cpu(), config.dataset.sample_rate)
+    _print_separation_summary(mixture, result)
     print(f"predicted_source_count={count}")
 
 
@@ -46,6 +48,36 @@ def _write_wav(path: Path, audio: torch.Tensor, sample_rate: int) -> None:
         handle.setsampwidth(2)
         handle.setframerate(sample_rate)
         handle.writeframes(pcm)
+
+
+def _print_separation_summary(mixture: torch.Tensor, result: dict[str, torch.Tensor]) -> None:
+    sources = result["sources"]
+    residual = result["residual"]
+    mixture_rms = _rms(mixture)
+    residual_rms = _rms(residual)
+    print(f"mixture_rms={mixture_rms:.6f}")
+    print(f"residual_rms={residual_rms:.6f}")
+    print(f"residual_to_mixture_rms={residual_rms / max(mixture_rms, 1e-8):.3f}")
+    print(f"stop_prob={result['stop_prob'][0].detach().cpu().tolist()}")
+    for idx in range(sources.shape[1]):
+        source = sources[:, idx]
+        print(
+            f"source_{idx:02d}_rms={_rms(source):.6f} "
+            f"source_{idx:02d}_mixture_corr={_corr(source, mixture):.3f}"
+        )
+
+
+def _rms(audio: torch.Tensor) -> float:
+    return float(audio.detach().pow(2).mean().sqrt().cpu())
+
+
+def _corr(a: torch.Tensor, b: torch.Tensor, eps: float = 1e-8) -> float:
+    a = a.detach().flatten()
+    b = b.detach().flatten()
+    a = a - a.mean()
+    b = b - b.mean()
+    value = (a * b).mean() / (a.pow(2).mean().sqrt() * b.pow(2).mean().sqrt()).clamp_min(eps)
+    return float(value.cpu())
 
 
 if __name__ == "__main__":

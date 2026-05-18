@@ -15,7 +15,6 @@ class SeparatorOutput:
     estimated_sources: torch.Tensor
     stop_logits: torch.Tensor
     final_residual: torch.Tensor
-    residuals: torch.Tensor | None
     loss_terms: dict[str, torch.Tensor]
 
 
@@ -35,8 +34,8 @@ class OpenSetSeparator(nn.Module):
         )
         self.refiner = RestorationRefiner(channels=channels, hidden_channels=config.refine_channels)
 
-    def forward_train(self, batch, return_residuals: bool = False) -> SeparatorOutput:
-        return self._run(batch.mixture, stop_threshold=None, return_residuals=return_residuals, force_max_steps=True)
+    def forward_train(self, batch) -> SeparatorOutput:
+        return self._run(batch.mixture, stop_threshold=None, force_max_steps=True)
 
     @torch.no_grad()
     def separate(self, mixture: torch.Tensor) -> dict[str, torch.Tensor]:
@@ -45,7 +44,6 @@ class OpenSetSeparator(nn.Module):
         output = self._run(
             mixture,
             stop_threshold=self.config.stop_threshold,
-            return_residuals=True,
             force_max_steps=False,
         )
         stop_prob = torch.sigmoid(output.stop_logits)
@@ -58,20 +56,18 @@ class OpenSetSeparator(nn.Module):
             "stop_logits": output.stop_logits,
             "stop_prob": stop_prob,
             "predicted_source_count": torch.tensor(counts, device=mixture.device),
-            "residuals": output.residuals,
+            "residual": output.final_residual,
         }
 
     def _run(
         self,
         mixture: torch.Tensor,
         stop_threshold: float | None,
-        return_residuals: bool,
         force_max_steps: bool,
     ) -> SeparatorOutput:
         residual = mixture
         estimates = []
         stop_logits = []
-        residuals = [residual] if return_residuals else None
         for step in range(self.config.max_steps):
             residual_features, residual_spec = self.frontend.features(residual)
             encoded = self.encoder(residual_features)
@@ -90,8 +86,6 @@ class OpenSetSeparator(nn.Module):
             refined = self.refiner(rough, residual, mixture)
             estimates.append(refined)
             residual = residual - refined
-            if residuals is not None:
-                residuals.append(residual)
 
         if force_max_steps or len(stop_logits) == self.config.max_steps:
             residual_features, _ = self.frontend.features(residual)
@@ -103,5 +97,4 @@ class OpenSetSeparator(nn.Module):
         else:
             estimated = mixture.new_empty(mixture.shape[0], 0, mixture.shape[1], mixture.shape[-1])
         stop_tensor = torch.stack(stop_logits, dim=1)
-        residual_tensor = torch.stack(residuals, dim=1) if residuals is not None else None
-        return SeparatorOutput(estimated, stop_tensor, residual, residual_tensor, {})
+        return SeparatorOutput(estimated, stop_tensor, residual, {})
