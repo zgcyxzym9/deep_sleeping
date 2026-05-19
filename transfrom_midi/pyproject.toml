@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "audio-source-detector"
+version = "0.1.0"
+description = "Extensible WAV source presence detector for vocals and guitar."
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+  "torch>=2.2",
+  "torchaudio>=2.2",
+  "numpy>=1.26",
+  "transformers>=4.40",
+  "basic-pitch>=0.4.0",
+  "pretty_midi>=0.2.10",
+  "tensorflow-io-gcs-filesystem==0.31.0; platform_system == 'Windows' and python_version < '3.12'",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.uv]
+# Keep uv's safer multi-index behavior. With a single configured mirror, this mainly documents
+# the intended resolution strategy for future extension.
+index-strategy = "first-index"
+
+[[tool.uv.index]]
+name = "tsinghua"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
+
+[project.scripts]
+detect-sources = "source_detector.cli:main"
